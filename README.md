@@ -46,7 +46,7 @@ We recommend keeping these scripts up to date by regularly running `git pull`.
 
 ## Actions
 
-This repository includes three subcommands:
+This repository includes three subcommands, all of which require the `TFE_TOKEN` env variable to be set to a valid TFE token for authentication.  One can be generated from within TFE as described here: https://www.terraform.io/docs/enterprise/api/organization-tokens.html.
 
 - `tfe pushconfig` — Upload a Terraform configuration to a workspace and begin
   a run.
