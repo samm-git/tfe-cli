@@ -1,0 +1,96 @@
+#!/bin/sh
+
+## -------------------------------------------------------------------
+##
+## Copyright (c) 2018 HashiCorp. All Rights Reserved.
+##
+## This file is provided to you under the Mozilla Public License
+## Version 2.0 (the "License"); you may not use this file
+## except in compliance with the License.  You may obtain
+## a copy of the License at
+##
+##   https://www.mozilla.org/en-US/MPL/2.0/
+##
+## Unless required by applicable law or agreed to in writing,
+## software distributed under the License is distributed on an
+## "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+## KIND, either express or implied.  See the License for the
+## specific language governing permissions and limitations
+## under the License.
+##
+## -------------------------------------------------------------------
+
+tfe_cancel_description () (
+    echo "Force a run into the 'cancelled' state"
+)
+
+tfe_cancel_help () (
+# Be sure to include the common options with tfe_usage_args
+cat << EOF
+SYNOPSIS
+ tfe runs cancel [OPTIONS]
+
+DESCRIPTION
+ Force a run into the "cancelled" state.
+
+OPTIONS
+$(tfe_usage_args)
+
+ -run-id <ID>         The ID of the run to cancel.
+
+NOTES
+ The curl and jq commands are required.
+
+ This command forces a run (and its plan/apply, if applicable) into the
+ "canceled" state. This action should only be performed for runs that are stuck
+ and no longer progressing normally, as there is a risk of lost state data if a
+ progressing apply is force-canceled.
+ Healthy runs can be requested for cancellation by end-users.
+EOF
+)
+
+
+tfe_cancel () (
+
+    # Parse options
+    while [ -n "$1" ]; do
+        # If this is a common option it has already been parsed. Skip it and
+        # its value.
+        if is_common_opt "$1"; then
+            shift
+            shift
+            continue
+        fi
+
+        case "$1" in
+            -run-id)
+                run_id=$(assign_arg "$1" "$2")
+                ;;
+            *)
+                echoerr "Unknown option: $1"
+                return 1
+                ;;
+        esac
+        [ -n "$1" ] && shift
+        [ -n "$1" ] && shift
+    done
+
+    # Ensure all of tfe_org, etc, are set.
+    if ! check_required tfe_token tfe_address; then
+        return 1
+    fi
+
+    if [ -z "$run_id" ]; then
+        echoerr "Option -run-id is not set"
+        exit 1
+    fi
+
+    echodebug "[DEBUG] API request to force-cancel run:"
+    url="$tfe_address/api/v2/admin/runs/$run_id/actions/force-cancel"
+    if ! tfe_api_call -X POST "$url" >/dev/null; then
+        echoerr "Error cancelling run $run_id"
+        return 1
+    fi
+
+    echo "Cancelled $run_id"
+)
